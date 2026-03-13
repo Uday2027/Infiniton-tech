@@ -1,0 +1,360 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* scroll-behavior handled by GSAP for better performance */
+  }
+
+  body {
+    @apply bg-white dark:bg-navy-950 text-slate-900 dark:text-slate-100 font-body;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100 dark:bg-navy-950;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cyan-500/50 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cyan-500/80;
+  }
+
+  ::selection {
+    @apply bg-cyan-500/30;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-navy-950/70 backdrop-blur-xl border border-white/20 dark:border-white/10;
+  }
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-slate-900/50 backdrop-blur-lg border border-slate-200/50 dark:border-white/10 rounded-2xl;
+  }
+
+  .section-label {
+    @apply text-sm font-medium text-cyan-500 uppercase tracking-widest mb-4;
+  }
+
+  .section-title {
+    @apply text-4xl sm:text-5xl font-heading font-bold mb-6;
+  }
+
+  .section-description {
+    @apply text-lg text-slate-600 dark:text-slate-400 max-w-2xl;
+  }
+}
+
+/* Noise overlay */
+.noise-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Custom focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-cyan-500/50 ring-offset-2 ring-offset-white dark:ring-offset-navy-950;
+}
+
+/* GSAP Stacking Cards */
+.stacking-card {
+  will-change: transform, opacity;
+}
+
+/* Direction RTL helper for alternating grid */
+.lg\:direction-rtl {
+  direction: rtl;
+}
+
+.lg\:direction-rtl > * {
+  direction: ltr;
+}
+
+/* Horizontal scroll section */
+.service-slide {
+  will-change: transform, opacity;
+}
+
+/* Smooth marquee performance */
+.marquee-track {
+  will-change: transform;
+}
+
+/* ── Solar System Orbit Animations ── */
+
+@keyframes orbit-rotate {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes orbit-counter-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes sun-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(6, 182, 212, 0.4),
+      0 0 60px rgba(6, 182, 212, 0.2),
+      0 0 100px rgba(6, 182, 212, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(6, 182, 212, 0.6),
+      0 0 80px rgba(6, 182, 212, 0.3),
+      0 0 140px rgba(6, 182, 212, 0.15);
+  }
+}
+
+.orbit-ring,
+.orbit-rotator {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* Orbit rings use inset+margin centering so GSAP scale doesn't break positioning */
+.orbit-ring {
+  inset: 0;
+  margin: auto;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.dark .orbit-ring {
+  border-color: rgba(148, 163, 184, 0.06);
+}
+
+/* Orbit rotators use transform centering baked into the keyframes */
+.orbit-rotator {
+  top: 50%;
+  left: 50%;
+  animation-name: orbit-rotate;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.planet-counter-rotate {
+  animation-name: orbit-counter-rotate;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-rotator {
+    animation-play-state: paused !important;
+  }
+  .planet-counter-rotate {
+    animation-play-state: paused !important;
+  }
+}
+
+/* ── 3D Realistic Book ── */
+
+.book-3d {
+  transform-style: preserve-3d;
+}
+
+/* Right-side leaf: pivots around left edge (spine) */
+.book-leaf-right {
+  transform-style: preserve-3d;
+  transform-origin: left center;
+}
+
+/* Left-side leaf: pivots around right edge (spine) */
+.book-leaf-left {
+  transform-style: preserve-3d;
+  transform-origin: right center;
+}
+
+.book-page-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.book-page-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(180deg);
+}
+
+/* Hardcover frame */
+.book-cover {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-shadow:
+    0 25px 60px -15px rgba(0, 0, 0, 0.35),
+    0 10px 25px -10px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.dark .book-cover {
+  background: linear-gradient(135deg, #1a1a3e 0%, #0d0d26 100%);
+  box-shadow:
+    0 25px 60px -15px rgba(0, 0, 0, 0.6),
+    0 10px 25px -10px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+/* Spine — the visible book binding */
+.book-spine {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.15) 0%,
+    rgba(0,0,0,0.06) 20%,
+    rgba(0,0,0,0.02) 40%,
+    rgba(255,255,255,0.03) 50%,
+    rgba(0,0,0,0.02) 60%,
+    rgba(0,0,0,0.06) 80%,
+    rgba(0,0,0,0.15) 100%
+  );
+}
+
+.dark .book-spine {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.4) 0%,
+    rgba(0,0,0,0.15) 20%,
+    rgba(0,0,0,0.05) 40%,
+    rgba(255,255,255,0.04) 50%,
+    rgba(0,0,0,0.05) 60%,
+    rgba(0,0,0,0.15) 80%,
+    rgba(0,0,0,0.4) 100%
+  );
+}
+
+/* Gutter shadows — where pages meet the spine */
+.gutter-shadow-left {
+  background: linear-gradient(to left, rgba(0,0,0,0.12) 0%, transparent 100%);
+}
+
+.gutter-shadow-right {
+  background: linear-gradient(to right, rgba(0,0,0,0.12) 0%, transparent 100%);
+}
+
+.dark .gutter-shadow-left {
+  background: linear-gradient(to left, rgba(0,0,0,0.25) 0%, transparent 100%);
+}
+
+.dark .gutter-shadow-right {
+  background: linear-gradient(to right, rgba(0,0,0,0.25) 0%, transparent 100%);
+}
+
+/* Page edges — stacked pages visible on the right */
+.page-edges {
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 1px,
+    #e2e8f0 1px,
+    #e2e8f0 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.dark .page-edges {
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0px,
+    transparent 1px,
+    rgba(255,255,255,0.06) 1px,
+    rgba(255,255,255,0.06) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+/* Paper texture */
+.paper-texture {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.012) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.dark .paper-texture {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Page cream tint */
+.page-cream {
+  background-color: #fefdfb;
+}
+
+.dark .page-cream {
+  background-color: #0d0d26;
+}
+
+/* Flip hint animations */
+@keyframes hint-bob {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@keyframes hint-bob-left {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-4px); }
+}
+
+@keyframes hint-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.flip-hint-bob {
+  animation: hint-bob 1.5s ease-in-out infinite;
+}
+
+.flip-hint-bob-left {
+  animation: hint-bob-left 1.5s ease-in-out infinite;
+}
+
+.flip-hint-fade {
+  animation: hint-fade-in 0.6s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-leaf-right,
+  .book-leaf-left {
+    transform: none !important;
+    transition: opacity 0.3s ease;
+  }
+
+  .flip-hint-bob,
+  .flip-hint-bob-left {
+    animation: none;
+  }
+
+  .flip-hint-fade {
+    animation: none;
+  }
+}
