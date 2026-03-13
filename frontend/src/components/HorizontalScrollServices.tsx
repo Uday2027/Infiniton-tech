@@ -187,7 +187,7 @@ export default function HorizontalScrollServices() {
               key={i}
               className="service-card flex-shrink-0 w-[80vw] sm:w-[50vw] md:w-[40vw] lg:w-[30vw]"
             >
-              <div className="group relative h-[360px] sm:h-[400px] rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm overflow-hidden transition-colors duration-500 hover:border-white/[0.15]">
+              <div className="group relative min-h-[360px] sm:min-h-[400px] rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-sm overflow-hidden transition-colors duration-500 hover:border-white/[0.15]">
                 {/* Accent glow on hover */}
                 <div
                   className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full opacity-0 blur-[80px] transition-opacity duration-700 group-hover:opacity-20 pointer-events-none"
@@ -200,10 +200,10 @@ export default function HorizontalScrollServices() {
                 />
 
                 {/* Card content */}
-                <div className="relative h-full flex flex-col justify-between p-7 sm:p-9">
+                <div className="relative h-full flex flex-col justify-between p-6 sm:p-9">
                   <div>
                     {/* Number + Icon row */}
-                    <div className="flex items-start justify-between mb-8">
+                    <div className="flex items-start justify-between mb-6 sm:mb-8">
                       <div
                         className={`s-icon w-14 h-14 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center shadow-lg`}
                         style={{ boxShadow: `0 12px 40px ${service.accent}25` }}
@@ -216,12 +216,12 @@ export default function HorizontalScrollServices() {
                     </div>
 
                     {/* Title */}
-                    <h3 className="s-title text-2xl sm:text-3xl font-heading font-bold mb-4 text-white leading-snug">
+                    <h3 className="s-title text-xl sm:text-3xl font-heading font-bold mb-3 sm:mb-4 text-white leading-snug">
                       {service.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="s-desc text-base sm:text-lg text-slate-400 leading-relaxed">
+                    <p className="s-desc text-sm sm:text-lg text-slate-400 leading-relaxed">
                       {service.description}
                     </p>
                   </div>

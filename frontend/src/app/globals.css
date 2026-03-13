@@ -185,12 +185,14 @@
 .book-leaf-right {
   transform-style: preserve-3d;
   transform-origin: left center;
+  will-change: transform;
 }
 
 /* Left-side leaf: pivots around right edge (spine) */
 .book-leaf-left {
   transform-style: preserve-3d;
   transform-origin: right center;
+  will-change: transform;
 }
 
 .book-page-face {

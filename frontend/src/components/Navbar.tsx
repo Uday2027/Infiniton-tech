@@ -4,10 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "next-themes";
 import {
-  Sun,
-  Moon,
   Command,
   Search,
   Home,
@@ -33,35 +30,39 @@ const navItems = [
     icon: Mail,
     keywords: "contact get in touch email",
   },
+  {
+    href: "/consultation",
+    label: "Consultation",
+    icon: ArrowUpRight,
+    keywords: "consultation project start begin",
+  },
 ];
 
 export default function Navbar() {
   const [isPastHero, setIsPastHero] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const isHomePage = pathname === "/";
 
-  useEffect(() => setMounted(true), []);
+  // On non-home pages, force navbar to always show with glass background
+  useEffect(() => {
+    if (!isHomePage) {
+      setIsPastHero(true);
+    }
+  }, [isHomePage]);
 
   // Scroll handler
   const handleScroll = useCallback(() => {
-    const y = window.scrollY;
-    const vh = window.innerHeight;
-    setIsPastHero(y > vh * 0.4);
-    if (y > lastScrollY && y > vh) {
-      setIsHidden(true);
-    } else {
-      setIsHidden(false);
+    if (isHomePage) {
+      const y = window.scrollY;
+      const vh = window.innerHeight;
+      setIsPastHero(y > vh * 0.4);
     }
-    setLastScrollY(y);
-  }, [lastScrollY]);
+  }, [isHomePage]);
 
   useEffect(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -127,16 +128,16 @@ export default function Navbar() {
       {/* ── MINIMAL TOP BAR ── */}
       <motion.header
         initial={{ y: -80 }}
-        animate={{ y: isHidden ? -80 : 0 }}
+        animate={{ y: 0 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="fixed top-0 left-0 right-0 z-50"
       >
         <div className="px-4 sm:px-6 lg:px-8 pt-4">
           <div
-            className={`max-w-7xl mx-auto flex items-center justify-between h-12 px-4 rounded-2xl transition-all duration-500 ${
+            className={`max-w-7xl mx-auto flex items-center justify-between h-12 px-4 rounded-2xl transition-all duration-500 border ${
               isPastHero
-                ? "bg-white/70 dark:bg-navy-950/70 backdrop-blur-2xl border border-slate-200/50 dark:border-white/[0.06] shadow-lg shadow-black/[0.03] dark:shadow-black/20"
-                : "bg-transparent"
+                ? "bg-white/70 dark:bg-navy-950/70 backdrop-blur-2xl border-slate-200/50 dark:border-white/[0.06] shadow-lg shadow-black/[0.03] dark:shadow-black/20"
+                : "bg-transparent border-transparent"
             }`}
           >
             {/* Logo — fades in after scrolling past hero */}
@@ -156,7 +157,7 @@ export default function Navbar() {
                     ∞
                   </span>
                 </div>
-                <span className="hidden sm:inline font-heading font-bold text-sm tracking-tight">
+                <span className="font-heading font-bold text-sm tracking-tight">
                   Infiniton<span className="text-cyan-500">Tech</span>
                 </span>
               </div>
@@ -169,39 +170,12 @@ export default function Navbar() {
                 onClick={() => setPaletteOpen(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors border border-slate-200/60 dark:border-white/[0.06]"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-xs">Navigate...</span>
-                <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/[0.06] rounded border border-slate-200/80 dark:border-white/[0.06]">
+                {/* <Search className="w-3.5 h-3.5" /> */}
+                <span className="text-xs">Navigate...</span>
+                <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/[0.06] rounded border border-slate-200/80 dark:border-white/[0.06]">
                   <Command className="w-2.5 h-2.5" />K
                 </kbd>
               </button>
-
-              {/* Theme toggle */}
-              {mounted && (
-                <button
-                  onClick={() =>
-                    setTheme(theme === "dark" ? "light" : "dark")
-                  }
-                  className="p-2 rounded-xl hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors"
-                  aria-label="Toggle theme"
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={theme}
-                      initial={{ y: -12, opacity: 0, rotate: -90 }}
-                      animate={{ y: 0, opacity: 1, rotate: 0 }}
-                      exit={{ y: 12, opacity: 0, rotate: 90 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {theme === "dark" ? (
-                        <Sun className="w-4 h-4" />
-                      ) : (
-                        <Moon className="w-4 h-4" />
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -339,26 +313,6 @@ export default function Navbar() {
                     Get in Touch
                   </span>
                 </button>
-                {mounted && (
-                  <button
-                    onClick={() => {
-                      setTheme(theme === "dark" ? "light" : "dark");
-                      setPaletteOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/[0.06] flex items-center justify-center flex-shrink-0">
-                      {theme === "dark" ? (
-                        <Sun className="w-4 h-4 text-amber-500" />
-                      ) : (
-                        <Moon className="w-4 h-4 text-indigo-500" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Switch to {theme === "dark" ? "Light" : "Dark"} Mode
-                    </span>
-                  </button>
-                )}
               </div>
 
               {/* Footer hints */}

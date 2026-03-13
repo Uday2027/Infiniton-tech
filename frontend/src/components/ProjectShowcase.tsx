@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
+  MoveHorizontal,
 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -276,6 +277,9 @@ export default function ProjectShowcase() {
           return;
         }
 
+        // Kill any in-flight tweens on these elements to prevent stuck state
+        gsap.killTweensOf([leftEl, rightEl]);
+
         // Fade out, swap content, fade in
         gsap.to([leftEl, rightEl], {
           opacity: 0,
@@ -315,27 +319,37 @@ export default function ProjectShowcase() {
       const foldShadow = foldShadowRef.current;
 
       const resetAll = () => {
-        // Clear all GSAP inline styles so elements return to their CSS defaults
+        // Hide the animated leaves BEFORE clearing props so the snap back is invisible.
+        // The static pages underneath already show the correct target content.
         if (rightLeafRef.current) {
-          gsap.set(rightLeafRef.current, { clearProps: "all" });
-          rightLeafRef.current.style.zIndex = "5";
+          rightLeafRef.current.style.visibility = "hidden";
         }
         if (leftLeafRef.current) {
-          gsap.set(leftLeafRef.current, { clearProps: "all" });
-          leftLeafRef.current.style.zIndex = "5";
+          leftLeafRef.current.style.visibility = "hidden";
         }
         if (foldShadow) {
           foldShadow.style.opacity = "0";
           foldShadow.style.background = "none";
         }
 
+        // Update state — React will re-render with new content
         setActiveIdx(idx);
         setNextIdx(null);
         setFlipDirection(null);
 
-        // Defer unlocking by two frames so React render + compositing settle
+        // After React renders new content, clear GSAP props and reveal the leaves
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            if (rightLeafRef.current) {
+              gsap.set(rightLeafRef.current, { clearProps: "all" });
+              rightLeafRef.current.style.zIndex = "5";
+              rightLeafRef.current.style.visibility = "visible";
+            }
+            if (leftLeafRef.current) {
+              gsap.set(leftLeafRef.current, { clearProps: "all" });
+              leftLeafRef.current.style.zIndex = "5";
+              leftLeafRef.current.style.visibility = "visible";
+            }
             setIsAnimating(false);
           });
         });
@@ -505,7 +519,7 @@ export default function ProjectShowcase() {
         {/* ══ THE BOOK ══ */}
         <div ref={bookRef} className="max-w-6xl mx-auto">
           {/* Book table shadow */}
-          <div className="absolute -inset-6 bg-black/[0.06] dark:bg-black/30 rounded-[2rem] blur-3xl" />
+          <div className="absolute -inset-6 bg-black/[0.06] dark:bg-black/30 rounded-[2rem] blur-3xl pointer-events-none" />
 
           {/* Hardcover frame */}
           <div className="relative book-cover rounded-xl p-[6px] lg:p-2">
@@ -674,11 +688,29 @@ export default function ProjectShowcase() {
               >
                 <RightPage project={current} index={activeIdx} />
               </div>
+
+              {/* Mobile swipe hints — top and bottom */}
+              {showHint && (
+                <>
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-lg shadow-black/10 dark:shadow-black/30 border border-slate-200/60 dark:border-white/10 animate-pulse">
+                    <MoveHorizontal className="w-4 h-4 text-cyan-500" />
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      Swipe to explore projects
+                    </span>
+                  </div>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/95 dark:bg-slate-800/95 shadow-lg shadow-black/10 dark:shadow-black/30 border border-slate-200/60 dark:border-white/10 animate-pulse">
+                    <MoveHorizontal className="w-4 h-4 text-cyan-500" />
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      Swipe to explore projects
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* ── NAVIGATION ── */}
-          <div className="flex items-center justify-between mt-8 lg:mt-14">
+          <div className="relative z-10 flex items-center justify-between mt-8 lg:mt-14">
             <button
               onClick={goPrev}
               disabled={isAnimating}

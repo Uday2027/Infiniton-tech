@@ -87,7 +87,7 @@ export default function ParallaxStats() {
           ref={line1Ref}
           className="whitespace-nowrap select-none pointer-events-none mb-2"
         >
-          <span className="text-[7rem] sm:text-[10rem] lg:text-[14rem] font-heading font-bold leading-none bg-gradient-to-r from-cyan-400/60 via-blue-500/50 to-violet-500/60 bg-clip-text text-transparent">
+          <span className="text-[3.5rem] sm:text-[5rem] md:text-[7rem] lg:text-[14rem] font-heading font-bold leading-none bg-gradient-to-r from-cyan-400/60 via-blue-500/50 to-violet-500/60 bg-clip-text text-transparent">
             INFINITON TECH
           </span>
         </div>
@@ -97,7 +97,7 @@ export default function ParallaxStats() {
           ref={line2Ref}
           className="whitespace-nowrap select-none pointer-events-none"
         >
-          <span className="text-[7rem] sm:text-[10rem] lg:text-[14rem] font-heading font-bold leading-none text-transparent [-webkit-text-stroke:2px_rgba(6,182,212,0.4)]">
+          <span className="text-[3.5rem] sm:text-[5rem] md:text-[7rem] lg:text-[14rem] font-heading font-bold leading-none text-transparent [-webkit-text-stroke:2px_rgba(6,182,212,0.4)]">
             INFINITON TECH
           </span>
         </div>

@@ -35,7 +35,7 @@ function MarqueeTrack({
             {words.map((word, i) => (
               <span
                 key={`${copy}-${i}`}
-                className="inline-flex items-center mx-5 text-5xl sm:text-6xl lg:text-7xl font-heading font-bold"
+                className="inline-flex items-center mx-5 text-2xl sm:text-4xl md:text-5xl lg:text-7xl font-heading font-bold"
               >
                 {variant === "filled" ? (
                   <span className="text-slate-300 dark:text-slate-500">
