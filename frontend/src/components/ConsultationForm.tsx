@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedSection from "@/components/AnimatedSection";
 import {
@@ -20,7 +20,6 @@ import {
   Users,
   Target,
 } from "lucide-react";
-import emailjs from "@emailjs/browser";
 
 /* ── Types ── */
 
@@ -124,7 +123,6 @@ const teamSizeOptions = [
 /* ── Component ── */
 
 export default function ConsultationForm() {
-  const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -172,43 +170,35 @@ export default function ConsultationForm() {
     setAiSuggestion("");
 
     try {
-      const { GoogleGenerativeAI } = await import("@google/generative-ai");
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
-      if (!apiKey) {
-        setAiSuggestion(
-          "AI suggestions are not configured. Please add your Google AI API key to enable this feature."
-        );
-        setIsLoadingAi(false);
-        return;
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
       const projectLabel =
         projectTypes.find((p) => p.value === formData.projectType)?.label ||
         formData.projectType;
 
-      const prompt = `You are a software consultant at a tech agency. A client wants to build a ${projectLabel} project.
+      const res = await fetch("/api/ai-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectType: projectLabel,
+          projectDescription: formData.projectDescription,
+          targetAudience: formData.targetAudience,
+          keyFeatures: formData.keyFeatures,
+          existingSolution: formData.existingSolution,
+        }),
+      });
 
-Project description: ${formData.projectDescription}
-Target audience: ${formData.targetAudience || "Not specified"}
-Key features: ${formData.keyFeatures}
-Existing solution: ${formData.existingSolution || "None"}
+      const data = await res.json();
 
-Provide a brief, helpful suggestion (3-5 sentences) covering:
-1. A recommended tech stack
-2. One key consideration they should keep in mind
-3. A potential feature they might not have thought of
+      if (!res.ok) {
+        setAiSuggestion(
+          data.error || "Unable to generate suggestions right now. Don\u2019t worry \u2014 our team will review your project details and provide personalized recommendations."
+        );
+        return;
+      }
 
-Keep it concise, friendly, and practical. Do not use markdown formatting.`;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      setAiSuggestion(text);
+      setAiSuggestion(data.suggestion);
     } catch {
       setAiSuggestion(
-        "Unable to generate suggestions right now. Don't worry — our team will review your project details and provide personalized recommendations."
+        "Unable to generate suggestions right now. Don\u2019t worry \u2014 our team will review your project details and provide personalized recommendations."
       );
     } finally {
       setIsLoadingAi(false);
@@ -220,54 +210,29 @@ Keep it concise, friendly, and practical. Do not use markdown formatting.`;
     setSubmitStatus("idle");
 
     try {
-      // Build a message body from all form fields
-      const projectLabel =
-        projectTypes.find((p) => p.value === formData.projectType)?.label ||
-        formData.projectType;
+      const res = await fetch("/api/consultation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          company: formData.company,
+          phone: formData.phone,
+          projectType: formData.projectType,
+          projectName: formData.projectName,
+          projectDescription: formData.projectDescription,
+          targetAudience: formData.targetAudience,
+          keyFeatures: formData.keyFeatures,
+          existingSolution: formData.existingSolution,
+          budget: formData.budget,
+          timeline: formData.timeline,
+          teamSize: formData.teamSize,
+          additionalNotes: formData.additionalNotes,
+          aiSuggestion: aiSuggestion || undefined,
+        }),
+      });
 
-      const messageBody = `
---- CONSULTATION REQUEST ---
-
-Name: ${formData.name}
-Email: ${formData.email}
-Company: ${formData.company || "N/A"}
-Phone: ${formData.phone || "N/A"}
-
-Project Type: ${projectLabel}
-Project Name: ${formData.projectName || "N/A"}
-
-Project Description:
-${formData.projectDescription}
-
-Target Audience: ${formData.targetAudience || "N/A"}
-
-Key Features:
-${formData.keyFeatures}
-
-Existing Solution: ${formData.existingSolution || "None"}
-
-Budget: ${formData.budget}
-Timeline: ${formData.timeline}
-Team Size: ${formData.teamSize || "N/A"}
-
-Additional Notes:
-${formData.additionalNotes || "None"}
-
-${aiSuggestion ? `AI Suggestion Provided:\n${aiSuggestion}` : ""}
-`.trim();
-
-      // Use EmailJS to send the form data
-      await emailjs.send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "YOUR_SERVICE_ID",
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "YOUR_TEMPLATE_ID",
-        {
-          user_name: formData.name,
-          user_email: formData.email,
-          subject: `Consultation Request: ${projectLabel} — ${formData.projectName || "New Project"}`,
-          message: messageBody,
-        },
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY"
-      );
+      if (!res.ok) throw new Error("Submission failed");
 
       setSubmitStatus("success");
     } catch {
@@ -701,7 +666,6 @@ ${aiSuggestion ? `AI Suggestion Provided:\n${aiSuggestion}` : ""}
 
               {/* Step content */}
               <form
-                ref={formRef}
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (step === totalSteps - 1) handleSubmit();

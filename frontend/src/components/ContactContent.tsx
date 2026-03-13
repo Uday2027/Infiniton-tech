@@ -12,7 +12,6 @@ import {
   AlertCircle,
   Globe2,
 } from "lucide-react";
-import emailjs from "@emailjs/browser";
 
 export default function ContactContent() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -29,12 +28,21 @@ export default function ContactContent() {
     setSubmitStatus("idle");
 
     try {
-      await emailjs.sendForm(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "YOUR_SERVICE_ID",
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "YOUR_TEMPLATE_ID",
-        formRef.current,
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY"
-      );
+      const formData = new FormData(formRef.current);
+
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("user_name"),
+          email: formData.get("user_email"),
+          subject: formData.get("subject"),
+          message: formData.get("message"),
+        }),
+      });
+
+      if (!res.ok) throw new Error("Submission failed");
+
       setSubmitStatus("success");
       formRef.current.reset();
     } catch {

@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ConsultationRequest {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  email              String
+  company            String?
+  phone              String?
+  projectType        String
+  projectName        String?
+  projectDescription String
+  targetAudience     String?
+  keyFeatures        String
+  existingSolution   String?
+  budget             String
+  timeline           String
+  teamSize           String?
+  additionalNotes    String?
+  aiSuggestion       String?
+  status             String   @default("pending")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("consultation_requests")
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("unread")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contact_messages")
+}
+
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@map("admin_users")
+}

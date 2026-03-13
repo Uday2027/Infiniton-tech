@@ -4,7 +4,7 @@
 
 @layer base {
   html {
-    /* scroll-behavior handled by GSAP for better performance */
+    scroll-behavior: smooth;
   }
 
   body {
@@ -358,5 +358,33 @@
 
   .flip-hint-fade {
     animation: none;
+  }
+}
+
+/* ── Print Styles for Analytics ── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .noise-overlay,
+  nav,
+  footer,
+  button.print\\:hidden {
+    display: none !important;
+  }
+
+  .glass-card {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    backdrop-filter: none !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
   }
 }
