@@ -1,10 +1,121 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export function getServiceSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+}
 
-// Use service role key for server-side operations (bypasses RLS)
-export const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = getServiceSupabase();
+
+// ── Service Charges ──
+
+export interface ServiceCharge {
+  id: number;
+  projectId: number;
+  amount: number;
+  description: string | null;
+  chargeDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function createServiceCharge(data: {
+  projectId: number;
+  amount: number;
+  description?: string;
+  chargeDate?: string;
+}): Promise<ServiceCharge> {
+  const { data: row, error } = await supabase
+    .from("service_charges")
+    .insert({
+      project_id: data.projectId,
+      amount: data.amount,
+      description: data.description || null,
+      charge_date: data.chargeDate || new Date().toISOString().split("T")[0],
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    amount: row.amount,
+    description: row.description,
+    chargeDate: row.charge_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listServiceCharges(params: {
+  projectId?: number;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: ServiceCharge[]; total: number; page: number; totalPages: number }> {
+  const page = params.page || 1;
+  const limit = params.limit || 20;
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from("service_charges")
+    .select("*", { count: "exact" });
+
+  if (params.projectId) query = query.eq("project_id", params.projectId);
+
+  query = query.order("charge_date", { ascending: false }).range(from, to);
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+
+  const total = count || 0;
+  return {
+    data: (data || []).map((row: any) => ({
+      id: row.id,
+      projectId: row.project_id,
+      amount: row.amount,
+      description: row.description,
+      chargeDate: row.charge_date,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export async function updateServiceCharge(id: number, data: Partial<Omit<ServiceCharge, "id" | "createdAt" | "updatedAt">>): Promise<ServiceCharge | null> {
+  const { data: row, error } = await supabase
+    .from("service_charges")
+    .update({
+      ...("projectId" in data ? { project_id: data.projectId } : {}),
+      ...("amount" in data ? { amount: data.amount } : {}),
+      ...("description" in data ? { description: data.description } : {}),
+      ...("chargeDate" in data ? { charge_date: data.chargeDate } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) return null;
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    amount: row.amount,
+    description: row.description,
+    chargeDate: row.charge_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function deleteServiceCharge(id: number): Promise<boolean> {
+  const { error } = await supabase.from("service_charges").delete().eq("id", id);
+  return !error;
+}
 
 // ── Consultation Requests ──
 
@@ -96,13 +207,13 @@ export async function listConsultations(params: {
 
   let query = supabase
     .from("consultation_requests")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select("*", { count: "exact" });
 
   if (params.status) {
     query = query.eq("status", params.status);
   }
+
+  query = query.order("created_at", { ascending: false }).range(from, to);
 
   const { data, count, error } = await query;
   if (error) throw error;
@@ -175,13 +286,13 @@ export async function listContacts(params: {
 
   let query = supabase
     .from("contact_messages")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select("*", { count: "exact" });
 
   if (params.status) {
     query = query.eq("status", params.status);
   }
+
+  query = query.order("created_at", { ascending: false }).range(from, to);
 
   const { data, count, error } = await query;
   if (error) throw error;
@@ -274,13 +385,18 @@ export async function getDashboardStats() {
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const { data: monthlyIncomeData } = await supabase
-    .from("transactions")
-    .select("amount_bdt")
-    .eq("type", "income")
-    .gte("date", startOfMonth);
+  const [{ data: monthlyIncomeData }, { data: monthlyServiceCharges }, { data: monthlyExpenseData }] = await Promise.all([
+    supabase.from("transactions").select("amount_bdt").eq("type", "income").gte("date", startOfMonth),
+    supabase.from("service_charges").select("amount").gte("charge_date", startOfMonth),
+    supabase.from("transactions").select("amount_bdt").eq("type", "expense").gte("date", startOfMonth),
+  ]);
 
   const monthlyRevenue = (monthlyIncomeData || []).reduce(
+    (sum: number, t: { amount_bdt: number }) => sum + Number(t.amount_bdt), 0
+  ) + (monthlyServiceCharges || []).reduce(
+    (sum: number, t: { amount: number }) => sum + Number(t.amount), 0
+  );
+  const monthlyExpense = (monthlyExpenseData || []).reduce(
     (sum: number, t: { amount_bdt: number }) => sum + Number(t.amount_bdt), 0
   );
 
@@ -292,6 +408,8 @@ export async function getDashboardStats() {
     totalProjects: totalProjects || 0,
     activeProjects: activeProjects || 0,
     monthlyRevenue,
+    monthlyExpense,
+    monthlyProfit: monthlyRevenue - monthlyExpense,
     recentConsultations: (recentConsultations || []) as ConsultationRequest[],
     recentContacts: (recentContacts || []) as ContactMessage[],
   };
@@ -381,12 +499,12 @@ export async function listProjects(params: {
 
   let query = supabase
     .from("projects")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .select("*", { count: "exact" });
 
   if (params.status) query = query.eq("status", params.status);
   if (params.source) query = query.eq("source", params.source);
+
+  query = query.order("created_at", { ascending: false }).range(from, to);
 
   const { data, count, error } = await query;
   if (error) throw error;
@@ -418,13 +536,66 @@ export async function getProjectStats() {
     { count: inProgress },
     { count: completed },
     { count: cancelled },
+    { data: allProjects },
+    { data: serviceCharges },
+    { data: projectTransactions },
   ] = await Promise.all([
     supabase.from("projects").select("*", { count: "exact", head: true }),
     supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "in_progress"),
     supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "completed"),
     supabase.from("projects").select("*", { count: "exact", head: true }).eq("status", "cancelled"),
+    supabase.from("projects").select("id, name, budget_bdt, budget_usd, status, source"),
+    supabase.from("service_charges").select("project_id, amount"),
+    supabase.from("transactions").select("project_id, amount_bdt, amount_usd, type").not("project_id", "is", null),
   ]);
+
+  const projects = allProjects || [];
+  const charges = serviceCharges || [];
+
+  const totalBudgetBdt = projects.reduce((s: number, p: any) => s + Number(p.budget_bdt || 0), 0);
+  const totalBudgetUsd = projects.reduce((s: number, p: any) => s + Number(p.budget_usd || 0), 0);
+  const totalServiceCharges = charges.reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+
+  const manualCount = projects.filter((p: any) => p.source === "manual").length;
+  const consultationCount = projects.filter((p: any) => p.source === "consultation").length;
+
+  // Per-project service charge totals
+  const chargesByProject: Record<number, number> = {};
+  for (const c of charges) {
+    chargesByProject[c.project_id] = (chargesByProject[c.project_id] || 0) + Number(c.amount || 0);
+  }
+
+  // Per-project transaction income/expense totals
+  const txByProject: Record<number, { incomeBdt: number; incomeUsd: number; expenseBdt: number; expenseUsd: number }> = {};
+  for (const tx of (projectTransactions || [])) {
+    if (!txByProject[tx.project_id]) txByProject[tx.project_id] = { incomeBdt: 0, incomeUsd: 0, expenseBdt: 0, expenseUsd: 0 };
+    if (tx.type === "income") {
+      txByProject[tx.project_id].incomeBdt += Number(tx.amount_bdt || 0);
+      txByProject[tx.project_id].incomeUsd += Number(tx.amount_usd || 0);
+    } else {
+      txByProject[tx.project_id].expenseBdt += Number(tx.amount_bdt || 0);
+      txByProject[tx.project_id].expenseUsd += Number(tx.amount_usd || 0);
+    }
+  }
+
+  // Total earned across all projects (transaction income + service charges)
+  const totalEarnedBdt = Object.values(txByProject).reduce((s, t) => s + t.incomeBdt, 0) + totalServiceCharges;
+  const totalEarnedUsd = Object.values(txByProject).reduce((s, t) => s + t.incomeUsd, 0);
+
+  const projectBreakdown = projects.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    source: p.source,
+    budgetBdt: Number(p.budget_bdt || 0),
+    budgetUsd: Number(p.budget_usd || 0),
+    serviceCharges: chargesByProject[p.id] || 0,
+    earnedBdt: (txByProject[p.id]?.incomeBdt || 0) + (chargesByProject[p.id] || 0),
+    earnedUsd: txByProject[p.id]?.incomeUsd || 0,
+    spentBdt: txByProject[p.id]?.expenseBdt || 0,
+    spentUsd: txByProject[p.id]?.expenseUsd || 0,
+  }));
 
   return {
     total: total || 0,
@@ -432,6 +603,14 @@ export async function getProjectStats() {
     inProgress: inProgress || 0,
     completed: completed || 0,
     cancelled: cancelled || 0,
+    totalBudgetBdt,
+    totalBudgetUsd,
+    totalServiceCharges,
+    totalEarnedBdt,
+    totalEarnedUsd,
+    manualCount,
+    consultationCount,
+    projectBreakdown,
   };
 }
 
@@ -439,7 +618,15 @@ export async function convertConsultationToProject(consultationId: number): Prom
   const consultation = await getConsultationById(consultationId);
   if (!consultation) throw new Error("Consultation not found");
 
-  return createProject({
+  // Check if already converted
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("consultation_id", consultationId)
+    .maybeSingle();
+  if (existing) throw new Error("This consultation has already been converted to a project");
+
+  const project = await createProject({
     name: consultation.project_name || `Project from ${consultation.name}`,
     client_name: consultation.name,
     client_email: consultation.email,
@@ -449,7 +636,36 @@ export async function convertConsultationToProject(consultationId: number): Prom
     budget_usd: 0,
     consultation_id: consultationId,
     source: "consultation",
+    notes: consultation.budget ? `Client budget range: ${consultation.budget}` : undefined,
   });
+
+  // Update consultation status to completed
+  await supabase
+    .from("consultation_requests")
+    .update({ status: "completed", updated_at: new Date().toISOString() })
+    .eq("id", consultationId);
+
+  return project;
+}
+
+// Get linked project for a consultation
+export async function getLinkedProject(consultationId: number): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("consultation_id", consultationId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as Project;
+}
+
+// Get all consultation IDs that have been converted to projects
+export async function getConvertedConsultationIds(): Promise<Set<number>> {
+  const { data } = await supabase
+    .from("projects")
+    .select("consultation_id")
+    .not("consultation_id", "is", null);
+  return new Set((data || []).map((r: any) => r.consultation_id));
 }
 
 export async function deleteProject(id: number): Promise<boolean> {
@@ -534,15 +750,15 @@ export async function listTransactions(params: {
 
   let query = supabase
     .from("transactions")
-    .select("*", { count: "exact" })
-    .order("date", { ascending: false })
-    .range(from, to);
+    .select("*", { count: "exact" });
 
   if (params.type) query = query.eq("type", params.type);
   if (params.category) query = query.eq("category", params.category);
   if (params.project_id) query = query.eq("project_id", params.project_id);
   if (params.startDate) query = query.gte("date", params.startDate);
   if (params.endDate) query = query.lte("date", params.endDate);
+
+  query = query.order("date", { ascending: false }).range(from, to);
 
   const { data, count, error } = await query;
   if (error) throw error;
@@ -573,22 +789,28 @@ export async function deleteTransaction(id: number): Promise<boolean> {
 export async function getFinanceSummary(params?: { startDate?: string; endDate?: string }) {
   let incomeQuery = supabase.from("transactions").select("amount_bdt, amount_usd").eq("type", "income");
   let expenseQuery = supabase.from("transactions").select("amount_bdt, amount_usd").eq("type", "expense");
+  let serviceChargeQuery = supabase.from("service_charges").select("amount, charge_date");
 
   if (params?.startDate) {
     incomeQuery = incomeQuery.gte("date", params.startDate);
     expenseQuery = expenseQuery.gte("date", params.startDate);
+    serviceChargeQuery = serviceChargeQuery.gte("charge_date", params.startDate);
   }
   if (params?.endDate) {
     incomeQuery = incomeQuery.lte("date", params.endDate);
     expenseQuery = expenseQuery.lte("date", params.endDate);
+    serviceChargeQuery = serviceChargeQuery.lte("charge_date", params.endDate);
   }
 
-  const [{ data: incomeData }, { data: expenseData }] = await Promise.all([
+  const [{ data: incomeData }, { data: expenseData }, { data: serviceChargeData }] = await Promise.all([
     incomeQuery,
     expenseQuery,
+    serviceChargeQuery,
   ]);
 
-  const totalIncomeBdt = (incomeData || []).reduce((s: number, t: { amount_bdt: number }) => s + Number(t.amount_bdt), 0);
+  const serviceChargeTotalBdt = (serviceChargeData || []).reduce((s: number, t: { amount: number }) => s + Number(t.amount), 0);
+
+  const totalIncomeBdt = (incomeData || []).reduce((s: number, t: { amount_bdt: number }) => s + Number(t.amount_bdt), 0) + serviceChargeTotalBdt;
   const totalIncomeUsd = (incomeData || []).reduce((s: number, t: { amount_usd: number }) => s + Number(t.amount_usd), 0);
   const totalExpenseBdt = (expenseData || []).reduce((s: number, t: { amount_bdt: number }) => s + Number(t.amount_bdt), 0);
   const totalExpenseUsd = (expenseData || []).reduce((s: number, t: { amount_usd: number }) => s + Number(t.amount_usd), 0);
@@ -600,6 +822,7 @@ export async function getFinanceSummary(params?: { startDate?: string; endDate?:
     totalExpenseUsd,
     profitBdt: totalIncomeBdt - totalExpenseBdt,
     profitUsd: totalIncomeUsd - totalExpenseUsd,
+    serviceChargeTotalBdt,
   };
 }
 
@@ -607,12 +830,20 @@ export async function getMonthlyFinanceData(year: number) {
   const startDate = `${year}-01-01`;
   const endDate = `${year}-12-31`;
 
-  const { data } = await supabase
-    .from("transactions")
-    .select("type, amount_bdt, amount_usd, date")
-    .gte("date", startDate)
-    .lte("date", endDate)
-    .order("date", { ascending: true });
+  const [{ data: txData }, { data: scData }] = await Promise.all([
+    supabase
+      .from("transactions")
+      .select("type, amount_bdt, amount_usd, date")
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true }),
+    supabase
+      .from("service_charges")
+      .select("amount, charge_date")
+      .gte("charge_date", startDate)
+      .lte("charge_date", endDate)
+      .order("charge_date", { ascending: true }),
+  ]);
 
   const months = Array.from({ length: 12 }, (_, i) => ({
     month: i + 1,
@@ -621,9 +852,10 @@ export async function getMonthlyFinanceData(year: number) {
     incomeUsd: 0,
     expenseBdt: 0,
     expenseUsd: 0,
+    serviceChargesBdt: 0,
   }));
 
-  for (const row of data || []) {
+  for (const row of txData || []) {
     const monthIdx = new Date(row.date).getMonth();
     if (row.type === "income") {
       months[monthIdx].incomeBdt += Number(row.amount_bdt);
@@ -634,17 +866,84 @@ export async function getMonthlyFinanceData(year: number) {
     }
   }
 
+  for (const row of scData || []) {
+    const monthIdx = new Date(row.charge_date).getMonth();
+    months[monthIdx].serviceChargesBdt += Number(row.amount);
+    months[monthIdx].incomeBdt += Number(row.amount);
+  }
+
   return months;
 }
 
 // ── Analytics ──
 
+export async function getConsultationStats() {
+  const [
+    { count: total },
+    { count: pending },
+    { count: reviewed },
+    { count: completed },
+    { count: cancelled },
+  ] = await Promise.all([
+    supabase.from("consultation_requests").select("*", { count: "exact", head: true }),
+    supabase.from("consultation_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("consultation_requests").select("*", { count: "exact", head: true }).eq("status", "reviewed"),
+    supabase.from("consultation_requests").select("*", { count: "exact", head: true }).eq("status", "completed"),
+    supabase.from("consultation_requests").select("*", { count: "exact", head: true }).eq("status", "cancelled"),
+  ]);
+
+  const { count: convertedCount } = await supabase
+    .from("projects")
+    .select("*", { count: "exact", head: true })
+    .not("consultation_id", "is", null);
+
+  const totalVal = total || 0;
+  const converted = convertedCount || 0;
+  const conversionRate = totalVal > 0 ? Math.round((converted / totalVal) * 100) : 0;
+
+  return {
+    total: totalVal,
+    pending: pending || 0,
+    reviewed: reviewed || 0,
+    completed: completed || 0,
+    cancelled: cancelled || 0,
+    converted,
+    conversionRate,
+  };
+}
+
 export async function getAnalyticsData() {
-  const [projectStats, financeSummary, monthlyData] = await Promise.all([
+  const [projectStats, financeSummary, monthlyData, consultationStats] = await Promise.all([
     getProjectStats(),
     getFinanceSummary(),
     getMonthlyFinanceData(new Date().getFullYear()),
+    getConsultationStats(),
   ]);
 
-  return { projectStats, financeSummary, monthlyData };
+  return { projectStats, financeSummary, monthlyData, consultationStats };
+}
+
+export async function createProjectWithServiceRole(data: any) {
+  const serviceSupabase = getServiceSupabase();
+  const { data: row, error } = await serviceSupabase
+    .from('projects')
+    .insert({
+      name: data.name,
+      client_name: data.client_name,
+      client_email: data.client_email || null,
+      description: data.description || null,
+      project_type: data.project_type,
+      status: data.status || 'pending',
+      budget_bdt: data.budget_bdt || 0,
+      budget_usd: data.budget_usd || 0,
+      start_date: data.start_date || null,
+      end_date: data.end_date || null,
+      consultation_id: data.consultation_id || null,
+      source: data.source || 'manual',
+      notes: data.notes || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return row;
 }

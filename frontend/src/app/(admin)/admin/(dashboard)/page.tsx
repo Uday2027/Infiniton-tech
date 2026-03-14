@@ -8,21 +8,28 @@ import {
   AlertCircle,
   ArrowRight,
   Briefcase,
-  Activity,
   DollarSign,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import StatusBadge from "@/components/admin/StatusBadge";
+import RefreshButton from "@/components/admin/RefreshButton";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const stats = await getDashboardStats();
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-heading font-bold text-white">
-          Dashboard
-        </h1>
-        <p className="text-slate-400 mt-1">Overview of your admin panel</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">
+            Dashboard
+          </h1>
+          <p className="text-slate-400 mt-1">Overview of your admin panel</p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* Stats Grid */}
@@ -53,7 +60,7 @@ export default async function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
           label="Total Projects"
           value={stats.totalProjects}
@@ -61,16 +68,24 @@ export default async function AdminDashboardPage() {
           color="cyan"
         />
         <StatCard
-          label="Active Projects"
-          value={stats.activeProjects}
-          icon={<Activity className="w-5 h-5" />}
-          color="emerald"
-        />
-        <StatCard
           label="Revenue This Month (৳)"
           value={stats.monthlyRevenue}
           icon={<DollarSign className="w-5 h-5" />}
           color="emerald"
+          isCurrency
+        />
+        <StatCard
+          label="Expenses This Month (৳)"
+          value={stats.monthlyExpense}
+          icon={<TrendingDown className="w-5 h-5" />}
+          color="red"
+          isCurrency
+        />
+        <StatCard
+          label="Profit This Month (৳)"
+          value={stats.monthlyProfit}
+          icon={<TrendingUp className="w-5 h-5" />}
+          color={stats.monthlyProfit >= 0 ? "emerald" : "red"}
           isCurrency
         />
       </div>
@@ -167,13 +182,14 @@ function StatCard({
   label: string;
   value: number;
   icon: React.ReactNode;
-  color: "cyan" | "amber" | "emerald";
+  color: "cyan" | "amber" | "emerald" | "red";
   isCurrency?: boolean;
 }) {
   const colorClasses = {
     cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
     amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    red: "bg-red-500/10 text-red-400 border-red-500/20",
   };
 
   const displayValue = isCurrency

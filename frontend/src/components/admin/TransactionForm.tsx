@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { X, Loader2 } from "lucide-react";
-import type { Transaction } from "@/lib/db";
+import type { Transaction, Project } from "@/lib/db";
 
 const categories = [
   "Project Payment",
@@ -20,9 +20,11 @@ const categories = [
 
 export default function TransactionForm({
   transaction,
+  projects,
   onClose,
 }: {
   transaction: Transaction | null;
+  projects?: Project[];
   onClose: () => void;
 }) {
   const isEdit = !!transaction;
@@ -35,6 +37,7 @@ export default function TransactionForm({
     description: transaction?.description || "",
     amount_bdt: transaction?.amount_bdt?.toString() || "0",
     amount_usd: transaction?.amount_usd?.toString() || "0",
+    project_id: transaction?.project_id?.toString() || "",
     date: transaction?.date || new Date().toISOString().split("T")[0],
     payment_method: transaction?.payment_method || "",
     reference: transaction?.reference || "",
@@ -57,6 +60,7 @@ export default function TransactionForm({
         ...form,
         amount_bdt: parseFloat(form.amount_bdt) || 0,
         amount_usd: parseFloat(form.amount_usd) || 0,
+        project_id: form.project_id ? parseInt(form.project_id) : null,
       };
 
       const url = isEdit ? `/api/admin/transactions/${transaction.id}` : "/api/admin/transactions";
@@ -120,6 +124,16 @@ export default function TransactionForm({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Project</label>
+            <select name="project_id" value={form.project_id} onChange={handleChange} className={inputClass}>
+              <option value="" className="bg-navy-950">None (Manual)</option>
+              {(projects || []).map((p) => (
+                <option key={p.id} value={p.id} className="bg-navy-950">{p.name} — {p.client_name}</option>
+              ))}
+            </select>
           </div>
 
           <div>

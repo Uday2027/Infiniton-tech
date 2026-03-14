@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/auth";
-import { listProjects, createProjectWithServiceRole } from "@/lib/db";
+import { listServiceCharges, createServiceCharge } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const user = await getAdminUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const result = await listProjects({
-    status: searchParams.get("status") || undefined,
-    source: searchParams.get("source") || undefined,
+  const result = await listServiceCharges({
+    projectId: searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : undefined,
     page: parseInt(searchParams.get("page") || "1", 10),
-    limit: parseInt(searchParams.get("limit") || "20", 10),
+    limit: parseInt(searchParams.get("limit") || "10", 10),
   });
 
   return NextResponse.json(result);
@@ -23,10 +22,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const project = await createProjectWithServiceRole(body);
-    return NextResponse.json({ success: true, data: project });
+    const charge = await createServiceCharge(body);
+    return NextResponse.json({ success: true, data: charge });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Failed to create project";
+    const message = error instanceof Error ? error.message : "Failed to create service charge";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

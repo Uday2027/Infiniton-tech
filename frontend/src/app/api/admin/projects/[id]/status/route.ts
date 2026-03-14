@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getAdminUser } from "@/lib/auth";
 import { updateProjectStatus } from "@/lib/db";
 
@@ -15,5 +16,8 @@ export async function PATCH(
   const updated = await updateProjectStatus(parseInt(params.id), status);
   if (!updated) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/projects");
   return NextResponse.json({ success: true, data: updated });
 }

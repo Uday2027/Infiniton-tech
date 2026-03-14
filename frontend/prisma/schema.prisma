@@ -5,8 +5,41 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+}
+
+model Project {
+  id              Int              @id @default(autoincrement())
+  name            String
+  clientName      String           @map("client_name")
+  clientEmail     String?          @map("client_email")
+  description     String?
+  projectType     String           @map("project_type")
+  status          String           @default("pending")
+  budgetBdt       Float            @default(0) @map("budget_bdt")
+  budgetUsd       Float            @default(0) @map("budget_usd")
+  startDate       DateTime?        @map("start_date")
+  endDate         DateTime?        @map("end_date")
+  consultationId  Int?             @map("consultation_id")
+  source          String           @default("manual")
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  serviceCharges  ServiceCharge[]
+
+  @@map("projects")
+}
+
+model ServiceCharge {
+  id          Int       @id @default(autoincrement())
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int       @map("project_id")
+  amount      Float
+  description String?
+  chargeDate  DateTime  @default(now()) @map("charge_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("service_charges")
 }
 
 model ConsultationRequest {
@@ -15,20 +48,20 @@ model ConsultationRequest {
   email              String
   company            String?
   phone              String?
-  projectType        String
-  projectName        String?
-  projectDescription String
-  targetAudience     String?
-  keyFeatures        String
-  existingSolution   String?
+  projectType        String   @map("project_type")
+  projectName        String?  @map("project_name")
+  projectDescription String   @map("project_description")
+  targetAudience     String?  @map("target_audience")
+  keyFeatures        String   @map("key_features")
+  existingSolution   String?  @map("existing_solution")
   budget             String
   timeline           String
-  teamSize           String?
-  additionalNotes    String?
-  aiSuggestion       String?
+  teamSize           String?  @map("team_size")
+  additionalNotes    String?  @map("additional_notes")
+  aiSuggestion       String?  @map("ai_suggestion")
   status             String   @default("pending")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   @@map("consultation_requests")
 }
@@ -40,8 +73,8 @@ model ContactMessage {
   subject   String
   message   String
   status    String   @default("unread")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("contact_messages")
 }
@@ -49,8 +82,8 @@ model ContactMessage {
 model AdminUser {
   id           Int      @id @default(autoincrement())
   username     String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("admin_users")
 }

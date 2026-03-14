@@ -1,7 +1,9 @@
 import { listContacts } from "@/lib/db";
 import ContactsTable from "@/components/admin/ContactsTable";
+import RefreshButton from "@/components/admin/RefreshButton";
 
 export const metadata = { title: "Contacts | Admin" };
+export const dynamic = "force-dynamic";
 
 export default async function ContactsPage({
   searchParams,
@@ -14,13 +16,16 @@ export default async function ContactsPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-heading font-bold text-white">
-          Contacts
-        </h1>
-        <p className="text-slate-400 mt-1">
-          Manage contact messages
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-white">
+            Contacts
+          </h1>
+          <p className="text-slate-400 mt-1">
+            Manage contact messages
+          </p>
+        </div>
+        <RefreshButton />
       </div>
       <ContactsTable
         data={result.data}

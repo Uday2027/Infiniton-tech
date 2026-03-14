@@ -18,6 +18,7 @@ export default function ProjectsTable({
   totalPages,
   currentStatus,
   currentSource,
+  financialMap,
 }: {
   data: Project[];
   total: number;
@@ -25,6 +26,7 @@ export default function ProjectsTable({
   totalPages: number;
   currentStatus?: string;
   currentSource?: string;
+  financialMap?: Record<number, { serviceCharges: number; earnedBdt: number; spentBdt: number }>;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +42,9 @@ export default function ProjectsTable({
       params.set(key, value);
     }
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    const url = `?${params.toString()}`;
+    router.push(url);
+    router.refresh();
   };
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
@@ -70,10 +74,6 @@ export default function ProjectsTable({
     setShowForm(false);
     setEditingProject(null);
     router.refresh();
-  };
-
-  const formatCurrency = (bdt: number, usd: number) => {
-    return `৳${bdt.toLocaleString()} / $${usd.toLocaleString()}`;
   };
 
   return (
@@ -134,7 +134,9 @@ export default function ProjectsTable({
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Client</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Type</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Budget</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Budget (৳)</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden xl:table-cell">Earned (৳)</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden xl:table-cell">Svc Charges (৳)</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Source</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
@@ -143,47 +145,60 @@ export default function ProjectsTable({
             <tbody className="divide-y divide-white/5">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500 text-sm">
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">
                     No projects found.
                   </td>
                 </tr>
               ) : (
-                data.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3 text-sm text-white">{item.name}</td>
-                    <td className="px-4 py-3 text-sm text-slate-400 hidden md:table-cell">{item.client_name}</td>
-                    <td className="px-4 py-3 text-sm text-slate-400 hidden lg:table-cell">{item.project_type}</td>
-                    <td className="px-4 py-3 text-sm text-slate-400 hidden lg:table-cell">
-                      {formatCurrency(item.budget_bdt, item.budget_usd)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
-                        disabled={updatingId === item.id}
-                        className="bg-transparent text-xs rounded-lg border border-white/10 px-2 py-1 text-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 disabled:opacity-50"
-                      >
-                        {statuses.filter((s) => s !== "all").map((s) => (
-                          <option key={s} value={s} className="bg-navy-950">
-                            {s.replace("_", " ")}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <StatusBadge status={item.source} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleView(item.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
-                        title="View/Edit"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                data.map((item) => {
+                  const fin = financialMap?.[item.id];
+                  return (
+                    <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 text-sm text-white">{item.name}</td>
+                      <td className="px-4 py-3 text-sm text-slate-400 hidden md:table-cell">{item.client_name}</td>
+                      <td className="px-4 py-3 text-sm text-slate-400 hidden lg:table-cell">{item.project_type}</td>
+                      <td className="px-4 py-3 text-sm text-right text-slate-300 hidden lg:table-cell">
+                        ৳{Number(item.budget_bdt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right hidden xl:table-cell">
+                        <span className={fin && fin.earnedBdt > 0 ? "text-emerald-400 font-medium" : "text-slate-500"}>
+                          ৳{(fin?.earnedBdt || 0).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right hidden xl:table-cell">
+                        <span className={fin && fin.serviceCharges > 0 ? "text-violet-400 font-medium" : "text-slate-500"}>
+                          ৳{(fin?.serviceCharges || 0).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={item.status}
+                          onChange={(e) => handleStatusUpdate(item.id, e.target.value)}
+                          disabled={updatingId === item.id}
+                          className="bg-transparent text-xs rounded-lg border border-white/10 px-2 py-1 text-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 disabled:opacity-50"
+                        >
+                          {statuses.filter((s) => s !== "all").map((s) => (
+                            <option key={s} value={s} className="bg-navy-950">
+                              {s.replace("_", " ")}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <StatusBadge status={item.source} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => handleView(item.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
+                          title="View/Edit"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

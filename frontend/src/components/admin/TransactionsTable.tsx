@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, Plus, Pencil, Trash2 } from "lucide-react";
-import type { Transaction } from "@/lib/db";
+import type { Transaction, Project } from "@/lib/db";
 import Pagination from "@/components/admin/Pagination";
 import TransactionForm from "@/components/admin/TransactionForm";
 
@@ -15,17 +15,24 @@ export default function TransactionsTable({
   page,
   totalPages,
   currentType,
+  projects,
 }: {
   data: Transaction[];
   total: number;
   page: number;
   totalPages: number;
   currentType?: string;
+  projects?: Project[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  const projectMap: Record<number, string> = {};
+  for (const p of projects || []) {
+    projectMap[p.id] = p.name;
+  }
 
   const handleTypeFilter = (type: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -35,7 +42,9 @@ export default function TransactionsTable({
       params.set("type", type);
     }
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    const url = `?${params.toString()}`;
+    router.push(url);
+    router.refresh();
   };
 
   const handleEdit = async (id: number) => {
@@ -101,6 +110,7 @@ export default function TransactionsTable({
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Description</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Project</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">BDT (৳)</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">USD ($)</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
@@ -109,7 +119,7 @@ export default function TransactionsTable({
             <tbody className="divide-y divide-white/5">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500 text-sm">
+                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500 text-sm">
                     No transactions found.
                   </td>
                 </tr>
@@ -131,6 +141,13 @@ export default function TransactionsTable({
                     <td className="px-4 py-3 text-sm text-slate-400 hidden md:table-cell">{item.category}</td>
                     <td className="px-4 py-3 text-sm text-slate-400 hidden lg:table-cell truncate max-w-[200px]">
                       {item.description}
+                    </td>
+                    <td className="px-4 py-3 text-sm hidden md:table-cell">
+                      {item.project_id && projectMap[item.project_id] ? (
+                        <span className="text-cyan-400">{projectMap[item.project_id]}</span>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
                     </td>
                     <td className={`px-4 py-3 text-sm text-right font-medium ${
                       item.type === "income" ? "text-emerald-400" : "text-red-400"
@@ -173,6 +190,7 @@ export default function TransactionsTable({
       {showForm && (
         <TransactionForm
           transaction={editingTransaction}
+          projects={projects}
           onClose={handleFormClose}
         />
       )}

@@ -22,13 +22,14 @@ export default function RevenueChart({
     label: string;
     incomeBdt: number;
     incomeUsd: number;
+    serviceChargesBdt: number;
   }[];
 }) {
   const data = {
     labels: monthlyData.map((m) => m.label),
     datasets: [
       {
-        label: "Revenue (BDT ৳)",
+        label: "Total Revenue (BDT ৳)",
         data: monthlyData.map((m) => m.incomeBdt),
         borderColor: "rgb(6, 182, 212)",
         backgroundColor: "rgba(6, 182, 212, 0.1)",
@@ -37,11 +38,21 @@ export default function RevenueChart({
         yAxisID: "y",
       },
       {
-        label: "Revenue (USD $)",
+        label: "Service Charges (BDT ৳)",
+        data: monthlyData.map((m) => m.serviceChargesBdt),
+        borderColor: "rgb(139, 92, 246)",
+        backgroundColor: "rgba(139, 92, 246, 0.1)",
+        fill: true,
+        tension: 0.4,
+        borderDash: [5, 5],
+        yAxisID: "y",
+      },
+      {
+        label: "Total Revenue (USD $)",
         data: monthlyData.map((m) => m.incomeUsd),
         borderColor: "rgb(168, 85, 247)",
-        backgroundColor: "rgba(168, 85, 247, 0.1)",
-        fill: true,
+        backgroundColor: "rgba(168, 85, 247, 0.05)",
+        fill: false,
         tension: 0.4,
         yAxisID: "y1",
       },

@@ -36,7 +36,9 @@ export default function ContactsTable({
       params.set("status", status);
     }
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    const url = `?${params.toString()}`;
+    router.push(url);
+    router.refresh();
   };
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
